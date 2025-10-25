@@ -1,151 +1,62 @@
 import streamlit as st
-import pandas as pd
-import math
-from pathlib import Path
+import datetime
+import matplotlib.pyplot as plt
 
-# Set the title and favicon that appear in the Browser's tab bar.
-st.set_page_config(
-    page_title='GDP dashboard',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
-)
+st.title("☕ 카페인 섭취 시간대별 수면 영향 분석")
 
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
+st.write("취침 예정 시간과 카페인 섭취 시간을 입력하면, 수면에 미치는 영향을 시각적으로 보여줍니다.")
+st.markdown("---")
 
-@st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
+# 사용자 입력
+sleep_time = st.time_input("취침 예정 시간", datetime.time(23, 0))
+intake_time = st.time_input("카페인 섭취 시간", datetime.time(15, 0))
 
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
-    """
+# 시간 차이 계산
+sleep_dt = datetime.datetime.combine(datetime.date.today(), sleep_time)
+intake_dt = datetime.datetime.combine(datetime.date.today(), intake_time)
+if intake_dt > sleep_dt:
+    intake_dt -= datetime.timedelta(days=1)
+hours_until_sleep = (sleep_dt - intake_dt).total_seconds() / 3600
 
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
+# 구간 분류 기준
+if hours_until_sleep >= 8:
+    risk_level = "🟩 안전(Safe)"
+    advice = "카페인 대사가 충분히 이루어져 수면에 거의 영향을 주지 않습니다."
+elif 4 <= hours_until_sleep < 8:
+    risk_level = "🟨 주의(Moderate)"
+    advice = "수면 효율이 약간 저하될 수 있습니다. 가능하면 취침 8시간 이전 섭취를 권장합니다."
+else:
+    risk_level = "🟥 위험(High Impact)"
+    advice = "카페인이 체내에 상당량 남아 수면 시작이 지연되고 깊은 수면이 감소할 수 있습니다."
 
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
+# 결과 출력
+st.subheader("결과 요약")
+st.write(f"☕ 섭취 시점: 취침 {hours_until_sleep:.1f}시간 전")
+st.write(f"📊 현재 구간: {risk_level}")
+st.info(advice)
 
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
-    )
-
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
-
-    return gdp_df
-
-gdp_df = get_gdp_data()
-
-# -----------------------------------------------------------------------------
-# Draw the actual page
-
-# Set the title that appears at the top of the page.
-'''
-# :earth_americas: GDP dashboard
-
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
-'''
-
-# Add some spacing
-''
-''
-
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
-
-from_year, to_year = st.slider(
-    'Which years are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
-
-countries = gdp_df['Country Code'].unique()
-
-if not len(countries):
-    st.warning("Select at least one country")
-
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
-    countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
-
-''
-''
-''
-
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
+# 그래프 생성
+fig, ax = plt.subplots(figsize=(8, 1.5))
+zones = [
+    (0, 4, "red", "위험"),
+    (4, 8, "gold", "주의"),
+    (8, 12, "green", "안전")
 ]
 
-st.header('GDP over time', divider='gray')
+for start, end, color, label in zones:
+    ax.barh(0, width=end - start, left=start, color=color, alpha=0.5, label=label)
 
-''
+# 사용자 섭취 위치 표시
+ax.scatter(hours_until_sleep, 0, color="black", s=100, zorder=5, label="섭취 시점")
+ax.text(hours_until_sleep, 0.15, f"{hours_until_sleep:.1f}h 전", ha="center", fontsize=10)
 
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
-)
+# 축 설정
+ax.set_xlim(0, 12)
+ax.set_yticks([])
+ax.set_xlabel("취침 전 시간 (시간 단위)")
+ax.invert_xaxis()  # 오른쪽이 취침 시점이 되도록 반전
+ax.legend(loc="upper right", ncol=4)
+st.pyplot(fig)
 
-''
-''
+st.caption("※ 연구 근거: 카페인 반감기 약 5시간, 취침 8시간 이내 섭취 시 수면 효율 저하 (ACU, 2023; Healthline, 2020)")
 
-
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
-
-st.header(f'GDP in {to_year}', divider='gray')
-
-''
-
-cols = st.columns(4)
-
-for i, country in enumerate(selected_countries):
-    col = cols[i % len(cols)]
-
-    with col:
-        first_gdp = first_year[first_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[last_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
-        else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
-
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
-        )
