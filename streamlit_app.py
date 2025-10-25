@@ -1,43 +1,14 @@
-# pip install streamlit matplotlib requests
+# pip install streamlit matplotlib
 
 import streamlit as st
 import datetime
 import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
-import matplotlib
-import os
-import requests
 
 # ------------------- 페이지 기본 설정 -------------------
 st.set_page_config(page_title="카페인 섭취 시간대별 수면 영향", layout="centered")
 st.title("☕ 카페인 섭취 시간대별 수면 영향 분석")
 st.write("취침 예정 시간과 카페인 섭취 시간을 입력하면, 수면에 미치는 영향을 시각적으로 보여줍니다.")
 st.markdown("---")
-
-# ------------------- ✅ 한글 폰트 설정 -------------------
-plt.rcParams['axes.unicode_minus'] = False  # 마이너스 깨짐 방지
-
-font_path = ""
-if os.name == "nt":  # Windows
-    font_path = "C:/Windows/Fonts/malgun.ttf"
-elif os.name == "posix":  # Mac, Linux, Streamlit Cloud
-    font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
-
-if not os.path.exists(font_path):
-    try:
-        os.makedirs(os.path.dirname(font_path), exist_ok=True)
-        url = "https://github.com/google/fonts/raw/main/ofl/nanumgothic/NanumGothic-Regular.ttf"
-        r = requests.get(url)
-        with open(font_path, "wb") as f:
-            f.write(r.content)
-    except Exception as e:
-        st.warning("⚠️ 폰트를 다운로드하지 못했습니다. 한글이 깨질 수 있습니다.")
-
-if os.path.exists(font_path):
-    font_name = fm.FontProperties(fname=font_path).get_name()
-    matplotlib.rc('font', family=font_name)
-else:
-    st.warning("⚠️ 한글 폰트를 찾지 못했습니다. 텍스트가 네모로 표시될 수 있습니다.")
 
 # ------------------- 사용자 입력 -------------------
 sleep_time = st.time_input("🛏️ 취침 예정 시간", datetime.time(23, 0))
@@ -70,15 +41,15 @@ st.info(advice)
 # ------------------- 그래프 -------------------
 fig, ax = plt.subplots(figsize=(8, 1.5))
 zones = [
-    (0, 4, "red", "위험"),
-    (4, 8, "gold", "주의"),
-    (8, 12, "green", "안전")
+    (0, 4, "red"),     # 위험
+    (4, 8, "gold"),    # 주의
+    (8, 12, "green")   # 안전
 ]
 
-for start, end, color, label in zones:
+for start, end, color in zones:
     ax.barh(0, width=end - start, left=start, color=color, alpha=0.5)
 
-# 섭취 시점 마커만 표시 (텍스트 제거)
+# 섭취 시점 표시 (텍스트 없음)
 ax.scatter(hours_until_sleep, 0, color="black", s=100, zorder=5)
 
 # 축 설정
@@ -88,7 +59,7 @@ ax.set_xlabel("취침 전 남은 시간 (시간 단위)")
 ax.invert_xaxis()  # 오른쪽이 취침 시점
 st.pyplot(fig)
 
-# ------------------- 그래프 해설 텍스트 -------------------
+# ------------------- 그래프 해설 -------------------
 st.markdown("""
 #### 그래프 해석 가이드
 - **녹색 구간 (8~12시간 전)**: 카페인 대사가 충분히 이루어져 수면에 영향이 거의 없음  
@@ -98,5 +69,6 @@ st.markdown("""
 """)
 
 st.caption("※ 근거: 카페인 반감기 약 5시간, 취침 8시간 이내 섭취 시 수면 효율 저하 (ACU, 2023; Healthline, 2020)")
+
 
 
