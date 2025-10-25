@@ -288,7 +288,7 @@ elif st.session_state.page == "timing":
     st.caption("""
 ※ 근거: 400mg(고용량) 섭취 기준 — 취침 전 12시간 이내 섭취 시 수면 질 저하  
 100mg(일반 커피 1잔)은 취침 전 4시간까지 섭취해도 수면에 유의미한 영향이 없음  
-(출처: Australian Catholic University Sleep Study, 2023; Healthline, 2020)
+(출처: Dose and timing effects of caffeine on subsequent sleep: a randomized clinical crossover trial, 2024)
 """)
 
     st.markdown("---")
