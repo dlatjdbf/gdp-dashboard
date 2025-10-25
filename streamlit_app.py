@@ -59,4 +59,3 @@ ax.legend(loc="upper right", ncol=4)
 st.pyplot(fig)
 
 st.caption("※ 연구 근거: 카페인 반감기 약 5시간, 취침 8시간 이내 섭취 시 수면 효율 저하 (ACU, 2023; Healthline, 2020)")
-
