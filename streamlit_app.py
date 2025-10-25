@@ -23,7 +23,6 @@ if os.name == "nt":  # Windows
 elif os.name == "posix":  # Mac, Linux, Streamlit Cloud
     font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
 
-# Streamlit Cloud용 — 폰트가 없을 때 자동 다운로드
 if not os.path.exists(font_path):
     try:
         os.makedirs(os.path.dirname(font_path), exist_ok=True)
@@ -68,7 +67,7 @@ st.write(f"☕ 섭취 시점: 취침 {hours_until_sleep:.1f}시간 전")
 st.write(f"📊 현재 구간: {risk_level}")
 st.info(advice)
 
-# ------------------- 시각화 -------------------
+# ------------------- 그래프 -------------------
 fig, ax = plt.subplots(figsize=(8, 1.5))
 zones = [
     (0, 4, "red", "위험"),
@@ -77,19 +76,27 @@ zones = [
 ]
 
 for start, end, color, label in zones:
-    ax.barh(0, width=end - start, left=start, color=color, alpha=0.5, label=label)
+    ax.barh(0, width=end - start, left=start, color=color, alpha=0.5)
 
-# 사용자 섭취 위치 표시
-ax.scatter(hours_until_sleep, 0, color="black", s=100, zorder=5, label="섭취 시점")
-ax.text(hours_until_sleep, 0.15, f"{hours_until_sleep:.1f}h 전", ha="center", fontsize=10)
+# 섭취 시점 마커만 표시 (텍스트 제거)
+ax.scatter(hours_until_sleep, 0, color="black", s=100, zorder=5)
 
 # 축 설정
 ax.set_xlim(0, 12)
 ax.set_yticks([])
 ax.set_xlabel("취침 전 남은 시간 (시간 단위)")
 ax.invert_xaxis()  # 오른쪽이 취침 시점
-ax.legend(loc="upper right", ncol=4)
 st.pyplot(fig)
 
-st.caption("※ 연구 근거: 카페인 반감기 약 5시간, 취침 8시간 이내 섭취 시 수면 효율 저하 (ACU, 2023; Healthline, 2020)")
+# ------------------- 그래프 해설 텍스트 -------------------
+st.markdown("""
+#### 그래프 해석 가이드
+- **녹색 구간 (8~12시간 전)**: 카페인 대사가 충분히 이루어져 수면에 영향이 거의 없음  
+- **노란색 구간 (4~8시간 전)**: 수면 효율이 약간 저하될 수 있음  
+- **빨간색 구간 (0~4시간 전)**: 수면 시작이 지연되고 깊은 수면이 줄어듦  
+- 검은 점은 사용자의 실제 **카페인 섭취 시점**을 나타냅니다.
+""")
+
+st.caption("※ 근거: 카페인 반감기 약 5시간, 취침 8시간 이내 섭취 시 수면 효율 저하 (ACU, 2023; Healthline, 2020)")
+
 
